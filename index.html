@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI API Response Tester</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
+        select, input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        button:disabled { background: #ccc; }
+        #output { margin-top: 20px; padding: 15px; background: #282c34; color: #abb2bf; border-radius: 8px; min-height: 100px; white-space: pre-wrap; font-family: monospace; }
+        .label { font-weight: bold; color: #555; margin-top: 10px; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🚀 AI Response Tester</h2>
+    
+    <label class="label">Select API:</label>
+    <select id="apiType">
+        <option value="gemini">Google Gemini</option>
+        <option value="openai">OpenAI (ChatGPT)</option>
+    </select>
+
+    <label class="label">API Key:</label>
+    <input type="password" id="apiKey" placeholder="Paste your API key here...">
+
+    <label class="label">Your Question:</label>
+    <textarea id="userPrompt" rows="3">What is Java?</textarea>
+
+    <button id="sendBtn" onclick="testAI()">Send Question</button>
+
+    <label class="label">AI Response:</label>
+    <div id="output">Waiting for request...</div>
+</div>
+
+<script>
+async function testAI() {
+    const apiType = document.getElementById('apiType').value;
+    const key = document.getElementById('apiKey').value.trim();
+    const prompt = document.getElementById('userPrompt').value;
+    const output = document.getElementById('output');
+    const btn = document.getElementById('sendBtn');
+
+    if (!key) return alert("Please enter your API key!");
+
+    output.innerHTML = "⏳ AI is thinking...";
+    btn.disabled = true;
+
+    try {
+        let response, data, finalResult;
+
+        if (apiType === "gemini") {
+            // GEMINI LOGIC
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+            response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            data = await response.json();
+            finalResult = data.candidates?.[0]?.content?.parts?.[0]?.text || "Error: No response text found.";
+        } else {
+            // OPENAI LOGIC
+            response = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${key}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o-mini",
+                    messages: [{ role: "user", content: prompt }]
+                })
+            });
+            data = await response.json();
+            finalResult = data.choices?.[0]?.message?.content || "Error: No response text found.";
+        }
+
+        if (response.ok) {
+            output.innerText = finalResult;
+            output.style.color = "#98c379"; // Greenish for success
+        } else {
+            output.innerText = "❌ API Error:\n" + JSON.stringify(data.error, null, 2);
+            output.style.color = "#e06c75"; // Reddish for error
+        }
+    } catch (err) {
+        output.innerText = "❌ Network Error: " + err.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+</script>
+
+</body>
+</html>
